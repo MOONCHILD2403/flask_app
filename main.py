@@ -76,7 +76,7 @@ def profile():
             if(user):
                 return jsonify({'message':'user with a same name already exists please choose  different name'}),401
 
-        mongo.db.users.update_one({'username': data['username']}, {'$set': mydata})
+        mongo.db.users.update_one({'username': current_user['username']}, {'$set': mydata})
         return jsonify({'message': 'Profile updated successfully'}), 200
 
 @app.route('/analyze', methods=['POST'])
