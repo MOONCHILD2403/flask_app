@@ -2,13 +2,37 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard</title>
     <link rel="stylesheet" href="../static/style.css">
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const error = "{{ error }}";
+            if (error!="None") {
+                alert(error);
+            }
+        });
+    </script>
 </head>
 <body>
-    <h2>Welcome to Your Dashboard</h2>
-    <p>This is your dashboard where you can manage your account.</p>
-    <a href="/profile">Update User Details</a>
-    <!-- <a href="">Logout</a> -->
+    <div class="container">
+        <h2>Welcome, {{ user.username }}</h2>
+        <h3>Current Details</h3>
+        <div class="user-details">
+            <p><strong>Username:</strong> {{ user.username }}</p>
+        </div>
+        <br>
+        <h2>Update Details</h2>
+        <form action="/profile" method="post">
+            <input type="hidden" name="_method" value="PUT">
+            <input type="text" name="username" placeholder="New Username" >
+            <input type="password" name="password" placeholder="New Password" >
+            <button type="submit">Update</button>
+        </form>
+        <br>
+        <h2>OR</h2>
+        <a href="/analyze" class="button">Analyze Text</a>
+    </div>
 </body>
 </html>
+

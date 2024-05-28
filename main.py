@@ -1,11 +1,13 @@
-from flask import Flask, request, jsonify,render_template
+from flask import Flask, request, jsonify,render_template,redirect,url_for,session,flash
 from flask_pymongo import PyMongo
 from flask_bcrypt import Bcrypt
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity,decode_token
 from textblob import TextBlob
 import re
+import time
 
 app = Flask(__name__)
+app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 
 # Configuration
 app.config['MONGO_URI'] = 'mongodb://localhost:27017/aspireit'
@@ -31,61 +33,80 @@ jwt = JWTManager(app)
 #     else:
 #         request.json_data = None
 
-# @app.route('/')
-# def home():
-#     return render_template('home.html')
+@app.route('/')
+def home():
+    return render_template('home.html')
 
-@app.route('/register', methods=['POST'])
+@app.route('/register',methods = ['GET','POST'])
 def register():
-    
-    data = request.form
-    username = data['username']
-    password = bcrypt.generate_password_hash(data['password']).decode('utf-8')
-    user = {'username': username, 'password': password}
-
-    if mongo.db.users.find_one({'username': data['username']}):
-        return jsonify({'message': 'choose a different username'}), 401
-    mongo.db.users.insert_one(user)
-    return jsonify({'message': 'User registered successfully'}), 201
-
-@app.route('/login', methods=['POST'])
-def login():
-    data = request.form
-    user = mongo.db.users.find_one({'username': data['username']})
-    if user and bcrypt.check_password_hash(user['password'], data['password']):
-        access_token = create_access_token(identity={'username': user['username']})
-        return jsonify({'token': access_token}), 200
-    return jsonify({'message': 'Invalid credentials'}), 401
-
-@app.route('/profile', methods=['GET', 'PUT'])
-@jwt_required()
-def profile():
-    current_user = get_jwt_identity()
-    if request.method == 'GET':
-        user = mongo.db.users.find_one({'username': current_user['username']}, {'_id': 0, 'password': 0})
-        return jsonify(user), 200
-
-    if request.method == 'PUT':    
+    if(request.method == 'POST'):
         data = request.form
-        mydata = {k:v for k,v in data.items()}
-        if('password' in data):
-            passwd = bcrypt.generate_password_hash(data['password']).decode('utf-8')
-            mydata['password'] = passwd
-        if('username' in data):
-            user = mongo.db.users.find_one({'username': data['username']})
-            if(user):
-                return jsonify({'message':'user with a same name already exists please choose  different name'}),401
+        username = data['username']
+        password = bcrypt.generate_password_hash(data['password']).decode('utf-8')
+        user = {'username': username, 'password': password}
 
-        mongo.db.users.update_one({'username': current_user['username']}, {'$set': mydata})
-        return jsonify({'message': 'Profile updated successfully'}), 200
+        if mongo.db.users.find_one({'username': data['username']}):
+            return redirect(url_for('register',error = "username already in use")),301
+        mongo.db.users.insert_one(user)
+        return redirect(url_for('login',error = "user registered successfully")), 301
+    errory = request.args.get('error') 
+    return render_template('registration.html',error = errory)
 
-@app.route('/analyze', methods=['POST'])
-@jwt_required()
+@app.route('/login', methods=['GET','POST'])
+def login():
+    if(request.method == 'POST'):
+        data = request.form
+        user = mongo.db.users.find_one({'username': data['username']})
+        if user and bcrypt.check_password_hash(user['password'], data['password']):
+            access_token = create_access_token(identity={'username': user['username']})
+            session['jwt_token'] = access_token
+            return redirect(url_for('profile'))
+        return redirect(url_for('login',error = "incorrect credentials")),301
+    errory = request.args.get('error')
+    return render_template('login.html',error = errory)
+
+@app.route('/profile', methods=['GET', 'POST'])
+def profile():
+    token = session.get("jwt_token")
+    if not token:
+        return redirect(url_for('login', error='access not provided'))
+    current_user = decode_token(token)['sub']
+    user = mongo.db.users.find_one({'username': current_user['username']}, {'_id': 0,'password':0})
+    
+    if request.method == 'POST':
+        if request.form.get('_method') == 'PUT':   
+            data = request.form
+            mydata = {}
+            for k in data:
+                if(k!='_method') & (data[k]!=''):
+                    mydata[k] = data[k]
+
+            if('password' in mydata):
+                passwd = bcrypt.generate_password_hash(data['password']).decode('utf-8')
+                mydata['password'] = passwd
+            if('username' in mydata):
+                user1 = mongo.db.users.find_one({'username': mydata['username']})
+                if(user1):
+                   return redirect(url_for('profile',user = user, error='username already in use'))  
+                else:
+                    session['jwt_token'] = create_access_token(identity={'username': mydata['username']})
+            
+            res = mongo.db.users.find_one_and_update({'username': user['username']}, {'$set': mydata},return_document=True )
+            return redirect(url_for('profile',user = res, error='details updated successfully'))
+    errory = request.args.get('error')
+    return render_template('dashboard.html',user = user,error = errory)
+
+@app.route('/analyze', methods=['GET', 'POST'])
 def analyze():
-    data = request.form
-    text = data['text']
-    analysis = TextBlob(text).sentiment
-    return jsonify({'polarity': analysis.polarity, 'subjectivity': analysis.subjectivity}), 200
+    if request.method == 'POST':
+        data = request.form
+        text = data['text']
+        analysis = TextBlob(text)
+        polarity = analysis.sentiment.polarity
+        subjectivity = analysis.sentiment.subjectivity
+        analysis = {'polarity': polarity, 'subjectivity': subjectivity}
+        return render_template('analyze.html',results = analysis)
+    return render_template('analyze.html',results = '{msg : pls input text and submit}')
 
 # # Security measures
 # @app.before_request

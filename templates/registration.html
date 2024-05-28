@@ -5,19 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Registration</title>
     <link rel="stylesheet" href="../static/style.css">
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const error = "{{ error }}";
+            if (error!="None") {
+                alert(error);
+            }
+        });
+    </script>
 </head>
 <body>
-    <h2>User Registration</h2>
-    <form action="/register" method="POST">
-        <div class="container">
-            <label for="username"><b>Username</b></label>
-            <input type="text" placeholder="Enter Username" name="username" required>
+    <div class="container">
+        <h2>User Registration</h2>
+        <form action="/register" method="POST">
+                <label for="username"><b>Username</b></label>
+                <input type="text" placeholder="Enter Username" name="username" required>
 
-            <label for="password"><b>Password</b></label>
-            <input type="password" placeholder="Enter Password" name="password" required>
+                <label for="password"><b>Password</b></label>
+                <input type="password" placeholder="Enter Password" name="password" required>
 
-            <button type="submit">Register</button>
-        </div>
-    </form>
+                <button type="submit">Register</button>
+        </form>
+    </div>
 </body>
 </html>
