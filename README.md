@@ -31,11 +31,11 @@ The application is built using Flask, a lightweight web framework for Python. Mo
 
 3. **Set Up Configuration**:
    - edit the setup.json file in the project , replace "your_mongodb_connection_string", "your_jwt_secret_key", and "your_app_secret_key" with your actual MongoDB connection string, JWT secret key, and app secret key.
-   - Ensure your MongoDB server is running locally and is accessible
+   - Ensure your MongoDB server is running <ins>**locally**</ins> and is accessible
 
 4. **Run the Application**:
    ```bash
-   python app.py
+   python main.py
    ```
    The application will be accessible at `http://localhost:5000`.
 
