@@ -1,37 +1,21 @@
-from flask import Flask, request, jsonify,render_template,redirect,url_for,session,flash
+from flask import Flask, request,render_template,redirect,url_for,session
 from flask_pymongo import PyMongo
 from flask_bcrypt import Bcrypt
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity,decode_token
+from flask_jwt_extended import JWTManager, create_access_token,decode_token
 from textblob import TextBlob
-import re
-import time
+import json
+
+with open('setup.json', 'r') as file:
+    setup_data = json.load(file)
 
 app = Flask(__name__)
-app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
+app.secret_key = setup_data.get('app_secret_key')
+app.config['MONGO_URI'] = setup_data.get('MONGODB_URI')
+app.config['JWT_SECRET_KEY'] = setup_data.get('jwt_secret_key')
 
-# Configuration
-app.config['MONGO_URI'] = 'mongodb://localhost:27017/aspireit'
-app.config['JWT_SECRET_KEY'] = 'yb2024'
-
-# Initialize extensions
 mongo = PyMongo(app)
 bcrypt = Bcrypt(app)
 jwt = JWTManager(app)
-
-# @app.before_request
-# def before_request():
-#     # Check if the content type is JSON
-#     if request.content_type == 'application/json':
-#         print("jsno dtype")
-#         try:
-#             request.json_data = request.get_json()
-#         except Exception as e:
-#             request.json_data = None
-#     # Check if the content type is form-encoded
-#     elif request.content_type == 'application/x-www-form-urlencoded':
-#         request.json_data = request.form.to_dict()
-#     else:
-#         request.json_data = None
 
 @app.route('/')
 def home():
@@ -60,7 +44,7 @@ def login():
         if user and bcrypt.check_password_hash(user['password'], data['password']):
             access_token = create_access_token(identity={'username': user['username']})
             session['jwt_token'] = access_token
-            return redirect(url_for('profile'))
+            return redirect(url_for('profile')),301
         return redirect(url_for('login',error = "incorrect credentials")),301
     errory = request.args.get('error')
     return render_template('login.html',error = errory)
@@ -69,7 +53,7 @@ def login():
 def profile():
     token = session.get("jwt_token")
     if not token:
-        return redirect(url_for('login', error='access not provided'))
+        return redirect(url_for('login', error='access not provided')),301
     current_user = decode_token(token)['sub']
     user = mongo.db.users.find_one({'username': current_user['username']}, {'_id': 0,'password':0})
     
@@ -87,12 +71,12 @@ def profile():
             if('username' in mydata):
                 user1 = mongo.db.users.find_one({'username': mydata['username']})
                 if(user1):
-                   return redirect(url_for('profile',user = user, error='username already in use'))  
+                   return redirect(url_for('profile',user = user, error='username already in use')),301  
                 else:
                     session['jwt_token'] = create_access_token(identity={'username': mydata['username']})
             
             res = mongo.db.users.find_one_and_update({'username': user['username']}, {'$set': mydata},return_document=True )
-            return redirect(url_for('profile',user = res, error='details updated successfully'))
+            return redirect(url_for('profile',user = res, error='details updated successfully')),301
     errory = request.args.get('error')
     return render_template('dashboard.html',user = user,error = errory)
 
@@ -108,13 +92,6 @@ def analyze():
         return render_template('analyze.html',results = analysis)
     return render_template('analyze.html',results = '{msg : pls input text and submit}')
 
-# # Security measures
-# @app.before_request
-# def before_request():
-#     # Input validation and security checks
-#    pass
-
-# Run the app
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
 

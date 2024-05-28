@@ -1,0 +1,6 @@
+Flask==3.0.3
+Flask_Bcrypt==1.0.1
+Flask_JWT_Extended==4.6.0
+Flask_PyMongo==2.3.0
+Requests==2.32.2
+textblob==0.18.0.post0
