@@ -9,7 +9,7 @@ with open('setup.json', 'r') as file:
     setup_data = json.load(file)
 
 app = Flask(__name__)
-app.secret_key = setup_data.get('app_secret_key')
+app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'  ##put your secret key here if any else don change
 app.config['MONGO_URI'] = setup_data.get('MONGODB_URI')
 app.config['JWT_SECRET_KEY'] = setup_data.get('jwt_secret_key')
 
